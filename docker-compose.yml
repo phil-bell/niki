@@ -1,0 +1,15 @@
+version: "3.9"  # optional since v1.27.0
+services:
+  fastapi:
+    build: .
+    image: philbell/niki.ie
+    ports:
+      - "80:80"
+    volumes:
+      - .:/code
+    links:
+      - qbittorrent
+    command: uvicorn app.main:app --host 0.0.0.0 --port 80 --reload
+  qbittorrent:
+    image: linuxserver/qbittorrent
+
