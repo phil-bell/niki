@@ -4,7 +4,7 @@ from fastapi.security import OAuth2PasswordBearer
 
 app = FastAPI()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-qbt_client = qbittorrentapi.Client(
+qbittorrent = qbittorrentapi.Client(
     host="localhost",
     port=8080,
     username="admin",
@@ -21,7 +21,7 @@ def read_root():
 def download(
     magnet: str, name: str, location: str, token: str = Depends(oauth2_scheme)
 ):
-    qbt_client.torrents_add(
+    qbittorrent.torrents_add(
         urls=magnet,
         save_path=f"{location}{name}",
     )
