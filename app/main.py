@@ -1,27 +1,50 @@
-import qbittorrentapi
+import functools
+import json
+import logging
+import os
+
+import requests
 from fastapi import Depends, FastAPI
 from fastapi.security import OAuth2PasswordBearer
+from jprq import __version__
+from jprq.tunnel_http import open_http_tunnel
 
+logger = logging.getLogger("uvicorn.error")
 app = FastAPI()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-qbittorrent = qbittorrentapi.Client(
-    host="localhost",
-    port=8080,
-    username="admin",
-    password="adminadmin",
-)
+
+
+def credentials(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        with open("creds.json", "r", encoding="utf-8") as json_file:
+            try:
+                creds = json.load(json_file)
+            except json.decoder.JSONDecodeError:
+                creds = {}
+        func(creds, *args, **kwargs)
+
+    return wrapper
+
+
+@app.on_event("startup")
+@credentials
+def startup_event(creds):
+    if "key" not in creds.keys():
+        key = input("Please enter your server key: ")
+        creds["key"] = key
+    if "secret" not in creds.keys():
+        secret = input("Please enter your secret: ")
+        creds["secret"] = secret
+
+    with open("creds.json", "w", encoding="utf-8") as json_file:
+        json.dump(creds, json_file, ensure_ascii=False, indent=4)
+
+    open_http_tunnel(
+        ws_uri=f"wss://open.jprq.io/_ws/&port=8003&version={__version__}",
+        http_uri=f"http://127.0.0.1:8003",
+    )
 
 
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
-
-
-@app.post("/download/")
-def download(
-    magnet: str, name: str, location: str, token: str = Depends(oauth2_scheme)
-):
-    qbittorrent.torrents_add(
-        urls=magnet,
-        save_path=f"{location}{name}",
-    )
