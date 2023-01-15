@@ -39,11 +39,6 @@ def startup_event(creds):
     with open("creds.json", "w", encoding="utf-8") as json_file:
         json.dump(creds, json_file, ensure_ascii=False, indent=4)
 
-    open_http_tunnel(
-        ws_uri=f"wss://open.jprq.io/_ws/&port=8003&version={__version__}",
-        http_uri=f"http://127.0.0.1:8003",
-    )
-
 
 @app.get("/")
 def read_root():
