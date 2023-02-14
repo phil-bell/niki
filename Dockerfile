@@ -2,17 +2,19 @@ FROM python:3.11-alpine
 
 WORKDIR /code
 
-RUN apk add -U qbittorrent-nox
-
 COPY ./requirements.txt /code/requirements.txt
 
-RUN pip install -r requirements.txt
+RUN apk add --no-cache --virtual .pynacl_deps build-base python3-dev libffi-dev && \
+    apk add --no-cache qbittorrent-nox && \
+    pip install --upgrade pip && \
+    pip install -r requirements.txt && \
+    apk del .pynacl_deps
 
 COPY . /code/
 
 # ENTRYPOINT ["/code/docker-entrypoint.sh"]
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8002", "--reload"]
+# CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8002", "--reload"]
 CMD ["/bin/bash", "-c", "uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload & qbittorrent-nox -d"]
 
 # Build:
