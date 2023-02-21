@@ -31,7 +31,18 @@ class MissingPrivateKeyException(Exception):
         super().__init__(self.message)
 
 
-async def decrypt(request: Request):
+async def poller():
+    while True:
+        torrents = qb.torrents()
+        encrypted_data = encrpyt({"torrents": torrents})
+        response = requests.post(
+            "http://host.docker.internal:8000/api/poll/",
+            data=encrypted_data,
+        )
+        time.sleep(10)
+        
+
+async def decrypt(request: Request) -> dict:
     data: bytes = await request.body()
     with open("PrivateKey", "rb") as private_key_file:
         try:
