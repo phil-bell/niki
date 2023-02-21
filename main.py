@@ -2,20 +2,24 @@ import json
 import logging
 import pickle
 import shutil
+import time
 
-from fastapi import Depends, FastAPI, Request
+import requests
+from fastapi import Depends, FastAPI, Request, Response
 
 # from cryptography.fernet import Fernet
 from nacl.encoding import HexEncoder
 from nacl.public import PrivateKey, PublicKey, SealedBox
 from qbittorrent import Client
 
-NIKI_PUBLIC_KEY = b""
-
 logger = logging.getLogger("uvicorn.error")
 app = FastAPI()
 qb = Client("http://0.0.0.0:8080/")
 qb.login("admin", "adminadmin")
+
+response = requests.get("http://host.docker.internal:8000/api/key/")
+data = response.json()
+NIKI_PUBLIC_KEY = data[0].get("public_key").encode()
 
 
 class MissingPrivateKeyException(Exception):
@@ -39,12 +43,13 @@ async def decrypt(request: Request):
         return json.loads(decrypted_data.decode())
 
 
-def encrpyt(data: str):
-    box = SealedBox(PublicKey(NIKI_PUBLIC_KEY))
-    return box.encrypt(json.dumps(data).encode())
+def encrpyt(data: dict) -> bytes:
+    box = SealedBox(PublicKey(NIKI_PUBLIC_KEY, encoder=HexEncoder))
+    data_str = json.dumps(data)
+    return box.encrypt(data_str.encode())
 
 
-def box_message(messages):
+def box_message(messages: list):
     width, _ = shutil.get_terminal_size()
     line = "".join(["-" for _ in range(width - 10)])
     empty_line = f'|{"".join([" " for _ in range(width - 12)])}|'
@@ -87,26 +92,17 @@ def read_root():
 
 
 @app.post("/add/")
-async def add(data: bytes = Depends(decrypt)):
-    return {"torrents": data}
+async def add(data: dict = Depends(decrypt)):
+    message = qb.download_from_link(
+        data.get("magnet"),
+        savepath=data.get("location"),
+    )
+    encrypted_data = encrpyt({"message": message})
+    return Response(content=encrypted_data)
 
 
 @app.get("/status/")
 async def status():
     torrents = qb.torrents()
-    return encrpyt(torrents)
-
-
-# def new_decrypt(data: str):
-#     with open("PrivateKey", "rb") as private_key_file:
-#         try:
-#             key = pickle.load(private_key_file)
-#         except EOFError:
-#             raise MissingPrivateKeyException
-#         box = SealedBox(key)
-#         decrypted_data = box.decrypt(data)
-#         return json.loads(decrypted_data.decode())
-
-# def new_encrypt(data:dict):
-#     f = Fernet(NIKI_PUBLIC_KEY.encode())
-#     return f.encrypt(json.dumps(data).encode())
+    encrypted_data = encrpyt({"torrents": torrents})
+    return Response(content=encrypted_data)
