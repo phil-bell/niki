@@ -31,17 +31,6 @@ class MissingPrivateKeyException(Exception):
         super().__init__(self.message)
 
 
-async def poller():
-    while True:
-        torrents = qb.torrents()
-        encrypted_data = encrpyt({"torrents": torrents})
-        response = requests.post(
-            "http://host.docker.internal:8000/api/poll/",
-            data=encrypted_data,
-        )
-        time.sleep(10)
-        
-
 async def decrypt(request: Request) -> dict:
     data: bytes = await request.body()
     with open("PrivateKey", "rb") as private_key_file:
@@ -78,7 +67,7 @@ def box_message(messages: list):
 def startup_event():
     try:
         logger.info("")
-        logger.info("Loading existing public key:")
+        logger.info("Loading existing public key...")
         file = open("PrivateKey", "rb")
         key = pickle.load(file)
         file.close()
@@ -87,7 +76,8 @@ def startup_event():
         key = PrivateKey.generate()
         pickle.dump(key, file)
         file.close()
-        logger.info("Generating new public key:")
+        logger.info("Generating new public key...")
+    logger.info("")
     box_message(
         [
             "Public key",
