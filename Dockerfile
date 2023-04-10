@@ -2,6 +2,8 @@ FROM python:3.11-alpine
 
 WORKDIR /code
 
+ENV PYTHONUNBUFFERED=1
+
 COPY ./requirements.txt /code/requirements.txt
 
 RUN apk add --no-cache --virtual .pynacl_deps build-base python3-dev libffi-dev && \
