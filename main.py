@@ -1,25 +1,26 @@
 import json
 import logging
+import os
 import pickle
 import shutil
 import time
+from subprocess import run
 
 import requests
 from fastapi import Depends, FastAPI, Request, Response
-
-# from cryptography.fernet import Fernet
 from nacl.encoding import HexEncoder
 from nacl.public import PrivateKey, PublicKey, SealedBox
 from qbittorrent import Client
 
-logger = logging.getLogger("uvicorn.error")
-app = FastAPI()
-qb = Client("http://0.0.0.0:8080/")
-qb.login("admin", "adminadmin")
+run(["qbittorrent-nox", "-d"])
 
-response = requests.get("http://host.docker.internal:8000/api/key/")
+logger = logging.getLogger("uvicorn.error")
+response = requests.get("https://starfish-app-hxdcr.ondigitalocean.app/api/key/")
 data = response.json()
 NIKI_PUBLIC_KEY = data[0].get("public_key").encode()
+QB_PASSWORD = os.environ.get("QB_PASSWORD", "adminadmin")
+
+app = FastAPI()
 
 
 class MissingPrivateKeyException(Exception):
@@ -43,6 +44,12 @@ async def decrypt(request: Request) -> dict:
         return json.loads(decrypted_data.decode())
 
 
+async def qb_client() -> Client:
+    qb = Client("http://0.0.0.0:8080/")
+    qb.login("admin", QB_PASSWORD)
+    return qb
+
+
 def encrpyt(data: dict) -> bytes:
     box = SealedBox(PublicKey(NIKI_PUBLIC_KEY, encoder=HexEncoder))
     data_str = json.dumps(data)
@@ -63,8 +70,7 @@ def box_message(messages: list):
     logger.info(line)
 
 
-@app.on_event("startup")
-def startup_event():
+def get_private_key() -> str:
     try:
         logger.info("")
         logger.info("Loading existing public key...")
@@ -77,13 +83,14 @@ def startup_event():
         pickle.dump(key, file)
         file.close()
         logger.info("Generating new public key...")
+    return key.public_key.encode(encoder=HexEncoder).decode()
+
+
+@app.on_event("startup")
+def startup_event():
+    key = get_private_key()
     logger.info("")
-    box_message(
-        [
-            "Public key",
-            key.public_key.encode(encoder=HexEncoder).decode(),
-        ]
-    )
+    box_message(["Public key", key])
     logger.info("")
 
 
@@ -94,6 +101,7 @@ def read_root():
 
 @app.post("/add/")
 async def add(data: dict = Depends(decrypt)):
+    qb = await qb_client()
     message = qb.download_from_link(
         data.get("magnet"),
         savepath=data.get("location"),
@@ -104,6 +112,7 @@ async def add(data: dict = Depends(decrypt)):
 
 @app.get("/status/")
 async def status():
+    qb = await qb_client()
     torrents = qb.torrents()
     encrypted_data = encrpyt({"torrents": torrents})
     return Response(content=encrypted_data)
