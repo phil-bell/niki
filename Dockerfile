@@ -15,6 +15,6 @@ RUN apk add --no-cache --virtual .pynacl_deps build-base python3-dev libffi-dev 
 
 COPY main.py /code/main.py
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8002"]
+CMD ["python", "main.py"]
 
 # docker run -d -v /mnt/a/movie/:/mnt/a/movie/ -v /mnt/c/tv/:/mnt/c/tv/ --network host philbell/niki-server:latest
