@@ -5,7 +5,7 @@ import websocket
 
 import app.handlers as handlers
 
-SERVER_URL = os.environ.get("SERVER_KEY", "wss://octopus-app-74lmf.ondigitalocean.app")
+SERVER_URL = os.environ.get("SERVER_KEY", "wss://starfish-app-hxdcr.ondigitalocean.app")
 SERVER_KEY = os.environ.get("SERVER_KEY")
 SERVER_SECRET = os.environ.get("SERVER_SECRET")
 
