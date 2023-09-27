@@ -5,9 +5,9 @@ import websocket
 
 import app.handlers as handlers
 
-SERVER_URL = os.environ.get("SERVER_KEY", "wss://starfish-app-hxdcr.ondigitalocean.app")
-SERVER_KEY = os.environ.get("SERVER_KEY")
-SERVER_SECRET = os.environ.get("SERVER_SECRET")
+SERVER_URL = os.environ.get("SERVER_URL", "wss://starfish-app-hxdcr.ondigitalocean.app")
+SERVER_KEY = os.environ.get("SERVER_KEY", "")
+SERVER_SECRET = os.environ.get("SERVER_SECRET", "")
 
 
 def main():
@@ -20,7 +20,7 @@ def main():
         on_message=handlers.on_message,
         on_close=handlers.on_close,
     )
-    wsapp.run_forever()
+    wsapp.run_forever(reconnect=1)
 
 
 if __name__ == "__main__":

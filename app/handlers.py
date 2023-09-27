@@ -13,3 +13,5 @@ def on_message(ws, message: str) -> None:
 
 def on_close(ws, close_status_code, close_msg) -> None:
     print("Connection closed")
+    if close_status_code or close_msg:
+        print(f"{close_status_code}: {close_msg}")
