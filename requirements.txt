@@ -1,3 +1,4 @@
-websocket-client==1.6.2
-python-qbittorrent==0.4.3
 black
+python-qbittorrent==0.4.3
+rel==0.4.9
+websocket-client==1.6.2
